@@ -19,6 +19,7 @@ export default function Interactive3DHero() {
     const networkNodesRef = useRef<THREE.Mesh[]>([]);
     const networkLinesRef = useRef<THREE.Line[]>([]);
     const nodeVelocitiesRef = useRef<{x: number, y: number, z: number}[]>([]);
+    const nodeAnchorsRef = useRef<THREE.Vector3[]>([]);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -34,7 +35,8 @@ export default function Interactive3DHero() {
             0.1,
             1000
         );
-        camera.position.z = 5;
+        camera.position.set(0, 0, 7);
+        camera.lookAt(0, 0, 0);
         cameraRef.current = camera;
 
         // Renderer setup
@@ -51,7 +53,71 @@ export default function Interactive3DHero() {
         // Create Neural Network Background
         const nodeCount = 100; // More nodes
 
+        networkNodesRef.current = [];
+        networkLinesRef.current = [];
+        nodeVelocitiesRef.current = [];
+        nodeAnchorsRef.current = [];
+
+        const brainGroup = new THREE.Group();
+        scene.add(brainGroup);
+        torusRef.current = brainGroup;
+
+        const sampleBrainPoint = (hemisphere: number) => {
+            const point = new THREE.Vector3();
+            const lobeHeight = 1.15;
+            const lobeWidth = 1.45;
+            const lobeDepth = 0.95;
+            const midSulcus = 0.32;
+
+            for (let attempt = 0; attempt < 40; attempt += 1) {
+                const y = (Math.random() * 2 - 1) * lobeHeight;
+                const normalizedY = Math.abs(y) / lobeHeight;
+
+                const corticalRidge =
+                    lobeWidth *
+                    (1 - Math.pow(normalizedY, 1.8) * 0.78 + Math.sin(y * 2.8) * 0.08);
+
+                const sulcusOffset = midSulcus + (1 - normalizedY) * 0.33;
+                const shellBias = 1 - Math.pow(Math.random(), 0.55);
+
+                let x = hemisphere * (sulcusOffset + corticalRidge * shellBias);
+                x += hemisphere * (Math.sin(y * 3.4) * 0.08 + Math.sin(y * 5.2) * 0.04);
+
+                const baseDepth =
+                    lobeDepth *
+                    (0.75 + (1 - normalizedY) * 0.55 + Math.sin(y * 2.6) * 0.05);
+                const depthBias = Math.pow(Math.random(), 0.6);
+                const z = (Math.random() < 0.5 ? -1 : 1) * baseDepth * depthBias;
+
+                const yzFalloff =
+                    Math.pow(Math.abs(y) / lobeHeight, 1.6) +
+                    Math.pow(Math.abs(z) / (baseDepth || 1), 1.85);
+
+                if (yzFalloff <= 1) {
+                    const lateralNoise = (Math.random() - 0.5) * 0.14;
+                    const verticalNoise = (Math.random() - 0.5) * 0.12;
+                    const depthNoise = (Math.random() - 0.5) * 0.2;
+
+                    point.set(
+                        (x + lateralNoise * hemisphere) * 1.35,
+                        (y + verticalNoise) * 1.4,
+                        (z + depthNoise) * 1.25
+                    );
+                    return point;
+                }
+            }
+
+            point.set(
+                hemisphere * (midSulcus + Math.random()),
+                (Math.random() * 2 - 1) * lobeHeight * 0.6,
+                (Math.random() * 2 - 1) * lobeDepth * 0.6
+            );
+
+            return point;
+        };
+
         // Create floating nodes
+        const rawAnchors: THREE.Vector3[] = [];
         for (let i = 0; i < nodeCount; i++) {
             const nodeGeometry = new THREE.SphereGeometry(0.12, 8, 8); // Bigger nodes
             const nodeMaterial = new THREE.MeshBasicMaterial({
@@ -61,26 +127,33 @@ export default function Interactive3DHero() {
             });
             const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
 
-            // Random position CLOSER to camera
-            const radius = 8 + Math.random() * 10; // Closer range
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
+            const hemisphere = Math.random() < 0.5 ? -1 : 1;
+            const anchor = sampleBrainPoint(hemisphere);
+            rawAnchors.push(anchor);
+            node.position.copy(anchor);
+            node.userData = { hemisphere };
 
-            node.position.set(
-                radius * Math.sin(phi) * Math.cos(theta),
-                radius * Math.sin(phi) * Math.sin(theta),
-                radius * Math.cos(phi)
-            );
-
-            // Random velocity for floating animation
             nodeVelocitiesRef.current.push({
-                x: (Math.random() - 0.5) * 0.015,
-                y: (Math.random() - 0.5) * 0.015,
-                z: (Math.random() - 0.5) * 0.015
+                x: (Math.random() - 0.5) * 0.007,
+                y: (Math.random() - 0.5) * 0.007,
+                z: (Math.random() - 0.5) * 0.007
             });
+            nodeAnchorsRef.current.push(anchor.clone());
 
             networkNodesRef.current.push(node);
-            scene.add(node);
+            brainGroup.add(node);
+        }
+
+        if (rawAnchors.length) {
+            const center = rawAnchors
+                .reduce((acc, anchor) => acc.add(anchor), new THREE.Vector3())
+                .multiplyScalar(1 / rawAnchors.length);
+
+            rawAnchors.forEach((anchor, index) => {
+                anchor.sub(center);
+                nodeAnchorsRef.current[index].copy(anchor);
+                networkNodesRef.current[index].position.copy(anchor);
+            });
         }
 
         // Create connections between nearby nodes
@@ -91,7 +164,7 @@ export default function Interactive3DHero() {
                 );
 
                 // Only connect nodes within certain distance
-                if (distance < 10) { // More connections
+                if (distance < 3.6) { // More connections within brain volume
                     const points = [
                         networkNodesRef.current[i].position.clone(),
                         networkNodesRef.current[j].position.clone()
@@ -109,7 +182,7 @@ export default function Interactive3DHero() {
                         endNodeIndex: j
                     };
                     networkLinesRef.current.push(line);
-                    scene.add(line);
+                    brainGroup.add(line);
                 }
             }
         }
@@ -147,22 +220,38 @@ export default function Interactive3DHero() {
             const time = Date.now() * 0.001; // Time in seconds
 
             // Animate neural network nodes (floating)
+            const globalPulse = 1 + Math.sin(time * 2) * 0.07;
+
             networkNodesRef.current.forEach((node, i) => {
-                // Smooth floating motion
-                node.position.x += nodeVelocitiesRef.current[i].x;
-                node.position.y += nodeVelocitiesRef.current[i].y;
-                node.position.z += nodeVelocitiesRef.current[i].z;
+                const velocity = nodeVelocitiesRef.current[i];
+                const anchor = nodeAnchorsRef.current[i];
+                const hemisphere = (node.userData?.hemisphere as number) || 1;
 
-                // Gentle pulsing
-                const pulse = Math.sin(time * 2 + i * 0.2) * 0.02 + 1;
-                node.scale.setScalar(pulse);
+                node.position.x += velocity.x;
+                node.position.y += velocity.y;
+                node.position.z += velocity.z;
 
-                // Bounce back if too far from origin
+                if (anchor) {
+                    node.position.lerp(anchor, 0.035);
+                    const anchorDistance = node.position.distanceTo(anchor);
+                    if (anchorDistance > 0.55) {
+                        node.position.lerp(anchor, 0.1);
+                    }
+                }
+
+                const hemispherePulse =
+                    globalPulse + Math.sin(time * 3.6 + hemisphere * Math.PI * 0.25) * 0.03;
+                node.scale.setScalar(hemispherePulse);
+
+                if (node.material instanceof THREE.MeshBasicMaterial) {
+                    node.material.opacity = 0.78 + Math.sin(time * 2) * 0.1;
+                }
+
                 const distFromCenter = node.position.length();
-                if (distFromCenter > 25) { // Closer boundary
-                    nodeVelocitiesRef.current[i].x *= -0.5;
-                    nodeVelocitiesRef.current[i].y *= -0.5;
-                    nodeVelocitiesRef.current[i].z *= -0.5;
+                if (distFromCenter > 12) {
+                    nodeVelocitiesRef.current[i].x *= -0.6;
+                    nodeVelocitiesRef.current[i].y *= -0.6;
+                    nodeVelocitiesRef.current[i].z *= -0.6;
                 }
             });
 
@@ -181,10 +270,18 @@ export default function Interactive3DHero() {
                     // Fade lines based on distance
                     const distance = startNode.position.distanceTo(endNode.position);
                     if (line.material instanceof THREE.LineBasicMaterial) {
-                        line.material.opacity = Math.max(0.2, 0.6 - distance / 30); // More visible
+                        line.material.opacity = Math.max(0.15, 0.45 - distance / 15 + Math.sin(time * 2) * 0.05);
                     }
                 }
             });
+
+            if (torusRef.current) {
+                const targetX = mouseRef.current.y * 0.25;
+                const targetY = mouseRef.current.x * 0.35;
+                torusRef.current.rotation.x += (targetX - torusRef.current.rotation.x) * 0.05;
+                torusRef.current.rotation.y += (targetY - torusRef.current.rotation.y) * 0.05;
+                torusRef.current.rotation.z += (Math.sin(time * 0.35) * 0.06 - torusRef.current.rotation.z) * 0.04;
+            }
 
             renderer.render(scene, camera);
         };
@@ -224,6 +321,15 @@ export default function Interactive3DHero() {
                     line.material.dispose();
                 }
             });
+            if (torusRef.current) {
+                scene.remove(torusRef.current);
+                torusRef.current.clear();
+                torusRef.current = null;
+            }
+            networkNodesRef.current = [];
+            networkLinesRef.current = [];
+            nodeVelocitiesRef.current = [];
+            nodeAnchorsRef.current = [];
             renderer.dispose();
         };
     }, []);

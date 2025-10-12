@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import React, {useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
 
@@ -51,7 +49,7 @@ export default function Interactive3DHero() {
         rendererRef.current = renderer;
 
         // Create Neural Network Background
-        const nodeCount = 100; // More nodes
+        const nodeCount = 110;
 
         networkNodesRef.current = [];
         networkLinesRef.current = [];
@@ -64,9 +62,9 @@ export default function Interactive3DHero() {
 
         const sampleBrainPoint = (hemisphere: number) => {
             const point = new THREE.Vector3();
-            const lobeHeight = 1.15;
-            const lobeWidth = 1.45;
-            const lobeDepth = 0.95;
+            const lobeHeight = 1.3;
+            const lobeWidth = 1.6;
+            const lobeDepth = 1.1;
             const midSulcus = 0.32;
 
             for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -78,7 +76,7 @@ export default function Interactive3DHero() {
                     (1 - Math.pow(normalizedY, 1.8) * 0.78 + Math.sin(y * 2.8) * 0.08);
 
                 const sulcusOffset = midSulcus + (1 - normalizedY) * 0.33;
-                const shellBias = 1 - Math.pow(Math.random(), 0.55);
+                const shellBias = 1 - Math.pow(Math.random(), 0.58);
 
                 let x = hemisphere * (sulcusOffset + corticalRidge * shellBias);
                 x += hemisphere * (Math.sin(y * 3.4) * 0.08 + Math.sin(y * 5.2) * 0.04);
@@ -99,9 +97,9 @@ export default function Interactive3DHero() {
                     const depthNoise = (Math.random() - 0.5) * 0.2;
 
                     point.set(
-                        (x + lateralNoise * hemisphere) * 1.35,
-                        (y + verticalNoise) * 1.4,
-                        (z + depthNoise) * 1.25
+                        (x + lateralNoise * hemisphere) * 1.6,
+                        (y + verticalNoise) * 1.55,
+                        (z + depthNoise) * 1.4
                     );
                     return point;
                 }
@@ -118,25 +116,37 @@ export default function Interactive3DHero() {
 
         // Create floating nodes
         const rawAnchors: THREE.Vector3[] = [];
+        const minAnchorSpacing = 0.32;
+
         for (let i = 0; i < nodeCount; i++) {
-            const nodeGeometry = new THREE.SphereGeometry(0.12, 8, 8); // Bigger nodes
+            const nodeGeometry = new THREE.SphereGeometry(0.045, 10, 10);
             const nodeMaterial = new THREE.MeshBasicMaterial({
-                color: 0x00d4ff, // Brighter cyan
+                color: 0xf8fafc,
                 transparent: true,
-                opacity: 0.9 // More opaque
+                opacity: 0.78
             });
             const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
 
             const hemisphere = Math.random() < 0.5 ? -1 : 1;
-            const anchor = sampleBrainPoint(hemisphere);
+            let anchor = sampleBrainPoint(hemisphere);
+
+            if (rawAnchors.length) {
+                let tries = 0;
+                while (tries < 15) {
+                    const tooClose = rawAnchors.some(existing => existing.distanceTo(anchor) < minAnchorSpacing);
+                    if (!tooClose) break;
+                    anchor = sampleBrainPoint(hemisphere);
+                    tries += 1;
+                }
+            }
             rawAnchors.push(anchor);
             node.position.copy(anchor);
             node.userData = { hemisphere };
 
             nodeVelocitiesRef.current.push({
-                x: (Math.random() - 0.5) * 0.007,
-                y: (Math.random() - 0.5) * 0.007,
-                z: (Math.random() - 0.5) * 0.007
+                x: (Math.random() - 0.5) * 0.0055,
+                y: (Math.random() - 0.5) * 0.0055,
+                z: (Math.random() - 0.5) * 0.0055
             });
             nodeAnchorsRef.current.push(anchor.clone());
 
@@ -157,6 +167,11 @@ export default function Interactive3DHero() {
         }
 
         // Create connections between nearby nodes
+        const connectionCounts = new Array(nodeCount).fill(0);
+        const maxConnectionsPerNode = 6;
+        const connectionDistance = 2.35;
+        const connectionChance = 0.65;
+
         for (let i = 0; i < nodeCount; i++) {
             for (let j = i + 1; j < nodeCount; j++) {
                 const distance = networkNodesRef.current[i].position.distanceTo(
@@ -164,17 +179,21 @@ export default function Interactive3DHero() {
                 );
 
                 // Only connect nodes within certain distance
-                if (distance < 3.6) { // More connections within brain volume
+                if (
+                    distance < connectionDistance &&
+                    connectionCounts[i] < maxConnectionsPerNode &&
+                    connectionCounts[j] < maxConnectionsPerNode &&
+                    Math.random() < connectionChance
+                ) {
                     const points = [
                         networkNodesRef.current[i].position.clone(),
                         networkNodesRef.current[j].position.clone()
                     ];
                     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
                     const lineMaterial = new THREE.LineBasicMaterial({
-                        color: 0x06b6d4, // Brighter cyan
+                        color: 0xe2e8f0,
                         transparent: true,
-                        opacity: 0.4, // More visible
-                        linewidth: 2
+                        opacity: 0.28
                     });
                     const line = new THREE.Line(lineGeometry, lineMaterial);
                     line.userData = {
@@ -183,6 +202,8 @@ export default function Interactive3DHero() {
                     };
                     networkLinesRef.current.push(line);
                     brainGroup.add(line);
+                    connectionCounts[i] += 1;
+                    connectionCounts[j] += 1;
                 }
             }
         }
@@ -220,7 +241,7 @@ export default function Interactive3DHero() {
             const time = Date.now() * 0.001; // Time in seconds
 
             // Animate neural network nodes (floating)
-            const globalPulse = 1 + Math.sin(time * 2) * 0.07;
+            const globalPulse = 1 + Math.sin(time * 1.85) * 0.055;
 
             networkNodesRef.current.forEach((node, i) => {
                 const velocity = nodeVelocitiesRef.current[i];
@@ -232,19 +253,19 @@ export default function Interactive3DHero() {
                 node.position.z += velocity.z;
 
                 if (anchor) {
-                    node.position.lerp(anchor, 0.035);
+                    node.position.lerp(anchor, 0.03);
                     const anchorDistance = node.position.distanceTo(anchor);
-                    if (anchorDistance > 0.55) {
-                        node.position.lerp(anchor, 0.1);
+                    if (anchorDistance > 0.48) {
+                        node.position.lerp(anchor, 0.09);
                     }
                 }
 
                 const hemispherePulse =
-                    globalPulse + Math.sin(time * 3.6 + hemisphere * Math.PI * 0.25) * 0.03;
+                    globalPulse + Math.sin(time * 3.2 + hemisphere * Math.PI * 0.28) * 0.02;
                 node.scale.setScalar(hemispherePulse);
 
                 if (node.material instanceof THREE.MeshBasicMaterial) {
-                    node.material.opacity = 0.78 + Math.sin(time * 2) * 0.1;
+                    node.material.opacity = 0.65 + Math.sin(time * 1.8) * 0.08;
                 }
 
                 const distFromCenter = node.position.length();
@@ -270,7 +291,8 @@ export default function Interactive3DHero() {
                     // Fade lines based on distance
                     const distance = startNode.position.distanceTo(endNode.position);
                     if (line.material instanceof THREE.LineBasicMaterial) {
-                        line.material.opacity = Math.max(0.15, 0.45 - distance / 15 + Math.sin(time * 2) * 0.05);
+                        const distanceFade = Math.max(0, 1 - distance / (connectionDistance * 1.35));
+                        line.material.opacity = 0.12 + distanceFade * 0.22 + Math.sin(time * 1.6) * 0.03;
                     }
                 }
             });

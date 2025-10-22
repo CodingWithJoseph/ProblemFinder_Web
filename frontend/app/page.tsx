@@ -1,9 +1,11 @@
-import HeroSection from "../components/ui/HeroSection";
+import {Hero} from "./home/Hero";
+import {TopNavigation} from "../components/navigation/TopNavigation";
 
 export default function HomePage() {
   return (
-    <div className="space-y-24">
-      <HeroSection />
-    </div>
+      <div className="min-h-screen w-full bg-white">
+          <TopNavigation/>
+          <Hero />
+      </div>
   );
 }

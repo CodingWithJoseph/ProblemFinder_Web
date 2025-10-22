@@ -311,7 +311,7 @@ your-project/
 │       └── discovery-engine.glb
 ├── components/
 │   └── ui/
-│       └── HeroSection.tsx
+│       └── Hero.tsx
 ```
 
 ### Component Code
@@ -528,7 +528,7 @@ export default function HeroSection() {
       {/* 3D Canvas Container */}
       <div ref={containerRef} className="absolute inset-0" />
       
-      {/* Navigation */}
+      {/* TopNavigation */}
       <nav className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-6">
         <div className="text-white text-2xl font-bold tracking-wider">
           ProblemFinder

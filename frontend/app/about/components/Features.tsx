@@ -6,7 +6,7 @@ import { Search, Target, BarChart3, Users } from 'lucide-react';
 const features = [
   {
     icon: Search,
-    title: 'Problem Discovery',
+    title: 'Problem Clarity',
     description: 'Uncover hidden pain points across multiple platforms and communities in real-time.',
     color: 'from-blue-500 to-cyan-500',
   },

@@ -2,7 +2,7 @@ import {motion} from "framer-motion";
 import {RefObject, useRef} from "react";
 import {DropdownButton} from "./DropdownButton";
 import {DropdownMenu} from "./DropdownMenu";
-import {NavigationProps } from "../NavigationProps";
+import {NavigationProps } from "../navbar/NavigationProps";
 import { useClickOutside } from "@/hooks/UseClickOutside";
 
 

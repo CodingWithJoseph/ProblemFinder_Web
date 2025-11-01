@@ -1,32 +1,35 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
 import { useScroll } from "framer-motion";
 
-// Define the shape of your context value
 interface ThemeContextType {
   isDark: boolean;
 }
 
-// Create context with a default value
 const ThemeContext = createContext<ThemeContextType>({
   isDark: false,
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { scrollY } = useScroll();
-  const [isDark, setIsDark] = useState(false);
-  const isDarkThreshold = 2000;
+  const [isDark, setIsDark] = useState(true);
+  const isDarkThreshold = 1000;
 
   useEffect(() => {
     const unsubscribe = scrollY.on("change", (latest) => {
-      setIsDark(latest > isDarkThreshold);
+      const shouldBeDark = latest > isDarkThreshold;
+      // Only update if the value actually changes
+      // setIsDark(prev => prev === shouldBeDark ? prev : shouldBeDark);
     });
     return () => unsubscribe();
-  }, [scrollY]);
+  }, [scrollY, isDarkThreshold]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({ isDark }), [isDark]);
 
   return (
-    <ThemeContext.Provider value={{ isDark }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

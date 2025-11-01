@@ -4,12 +4,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { Dropdown } from "../dropdown/Dropdown";
-import { NavigationProps } from "../NavigationProps";
+import { NavigationProps } from "./NavigationProps";
 import { useTheme } from "@/context/ThemeProvider";
 
 export function TopNavigation({ navProps }: { navProps: NavigationProps }) {
   const { isDark } = useTheme();
   const pathname = usePathname();
+
   const isHome = pathname === "/";
 
   return (
@@ -17,13 +18,25 @@ export function TopNavigation({ navProps }: { navProps: NavigationProps }) {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className={`fixed left-0 right-0 z-50 h-28 backdrop-blur-md shadow-sm transition-colors duration-700 ease-in-out
-      ${isDark ? "text-white background-brand-on-dark" : "text-black background-brand-on-light"}`}>
+      className={`h-20 backdrop-blur-md shadow-xs transition-colors duration-700 ease-in-out border-1 border-brand-soft-charcoal
+      ${
+        isDark
+          ? "text-brand-off-white bg-brand-charcoal"
+          : "text-brand-jet-black bg-brand-off-white"
+      }`}>
       <div className="max-w-7xl h-full mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <motion.div whileHover={{ scale: 1.05 }} className="w-8 h-8 rounded-full bg-black" />
+        <Link
+          href="/" prefetch={false}
+          className={`flex items-center gap-2 group ${isDark ? "text-brand-off-white" : "text-brand-jet-black"}`}>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className={`w-8 h-8 rounded-full transition-colors duration-700 ease-in-out ${
+              isDark
+                ? "bg-brand-off-white"
+                : "bg-brand-charcoal"
+            }`} />
           <span
-            className="tracking-tight text-black group-hover:text-[var(--color-brand-blue-200)]/90 transition-colors"
+            className="tracking-tight transition-colors"
             style={{ fontSize: "1.125rem", fontWeight: 500 }}>
             BlueLabs
           </span>
@@ -33,8 +46,8 @@ export function TopNavigation({ navProps }: { navProps: NavigationProps }) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-2.5 bg-[var(--color-brand-blue)] text-white rounded-full hover:bg-[var(--color-brand-blue-200)]/90 transition-colors">
-              Start Building
+              className="px-4 py-2 bg-brand-blue-primary text-white rounded-lg hover:bg-brand-blue-accent transition-colors">
+              Try BlueLabs
             </motion.button>
           </Link>
         ) : (

@@ -1,4 +1,6 @@
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
+/* vscode-css-lint disable */
+
 @layer properties {
     @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
         *, :before, :after, ::backdrop {
@@ -71,43 +73,6 @@
         --color-black: #000;
         --color-white: #fff;
 
-        --color-soft-gray: oklch(.985 .002 247.839);
-        --color-off-white: oklch(0.97 0 89.876);
-        --color-jet-black: oklch(0.145 0 89.876);
-        --color-charcoal: oklch(0.248 0 89.876);
-        --color-brand-blue: oklch(0.614 0.205 255.339);
-        --color-brand-blue-200: oklch(0.412 0.131 253.875);
-
-
-        --gradient-blue: linear-gradient(
-                90deg,
-                #2254a1 0%,
-                #4481b8 20%,
-                #63b0e3 40%,
-                #63b0e3 60%,
-                #4481b8 80%,
-                #2254a1 100%
-        );
-
-        --gradient-earth: linear-gradient(
-                45deg,
-                #004A8FFF 0%,
-                #2254a1 20%,
-                #0081FBFF 40%,
-                #00B9FC 60%,
-                #00CEC8 80%,
-                #2BA84A 100%
-        );
-
-        --gradient-fade-dark: linear-gradient(
-                to bottom,
-                transparent 0%,
-                rgba(10, 10, 10, 0.2) 20%,
-                rgba(10, 10, 10, 0.4) 40%,
-                rgba(10, 10, 10, 0.60) 60%,
-                rgba(10, 10, 10, 0.95) 80%,
-                var(--color-jet-black) 100%
-        );
         --spacing: .25rem;
         --container-2xl: 42rem;
         --container-3xl: 48rem;
@@ -1894,33 +1859,4 @@ html {
     syntax: "*";
     inherits: false;
     initial-value: 0;
-}
-
-.gradient-fade-dark {
-    background: var(--gradient-fade-dark);
-}
-
-.background-light {
-    background: var(--color-soft-gray);
-}
-
-.background-off-white {
-    background: var(--color-off-white);
-}
-
-.background-dark {
-    background: var(--color-jet-black);
-}
-
-.background-charcoal {
-    background: var(--color-charcoal);
-}
-
-/* Text utilities */
-.color-jet-black {
-    color: var(--color-jet-black);
-}
-
-.color-charcoal {
-    color: var(--color-charcoal);
 }

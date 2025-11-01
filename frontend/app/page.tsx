@@ -1,9 +1,9 @@
-import HeroSection from "../components/ui/HeroSection";
+import {Hero} from "./home/Hero";
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <div className="space-y-24">
-      <HeroSection />
-    </div>
+      <div className="min-h-screen w-full">
+        <Hero />
+      </div>
   );
 }
